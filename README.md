@@ -81,6 +81,12 @@ We deliberately disable Guest Additions / synced folders:
 
 This ensures the lab is reproducible across systems with minimal requirements.
 
+## Ansible Configurations
+
+This lab includes several Ansible playbooks under `ansible/ansible-configs/`:
+- Network routing configurations (`config1-ospf`, `config2-ospf-bgp`, `config3-bgp-2vrf`, `config4-bgp-vrf-no-rm`, `config5-bgp-vrf-rm`)
+- Bonus configuration: [config-bonus-atuin](ansible/ansible-configs/config-bonus-atuin/README.md) for deploying an Atuin shell history sync server (`vm03`) and clients (`vm01`, `vm02`).
+
 ## Cleanup
 
 To destroy the environment completely:
@@ -92,3 +98,4 @@ vagrant destroy -f
 ---
 
 Enjoy hacking on FRR with a minimal, repeatable Debian Trixie lab!
+

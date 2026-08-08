@@ -1,0 +1,53 @@
+---
+- name: Install prerequisite packages (curl and ca-certificates)
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+    state: present
+    update_cache: yes
+
+- name: Install pinned Atuin client release
+  ansible.builtin.shell: |
+    set -o pipefail
+    curl --proto '=https' --tlsv1.2 -sSfL https://github.com/atuinsh/atuin/releases/download/v{{ atuin_version }}/atuin-installer.sh | bash
+  args:
+    creates: /home/nico/.atuin/bin/atuin
+    executable: /bin/bash
+  become: yes
+  become_user: nico
+  environment:
+    HOME: "/home/nico"
+
+- name: Ensure Atuin PATH and Bash shell initialization in .bashrc
+  ansible.builtin.blockinfile:
+    path: /home/nico/.bashrc
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ATUIN"
+    owner: nico
+    group: nico
+    mode: "0644"
+    block: |
+      export PATH="$HOME/.atuin/bin:$PATH"
+      eval "$(atuin init bash)"
+
+- name: Check current Atuin sync_address configuration
+  ansible.builtin.command:
+    cmd: /home/nico/.atuin/bin/atuin config get sync_address
+  become: yes
+  become_user: nico
+  environment:
+    HOME: "/home/nico"
+    PATH: "/home/nico/.atuin/bin:{{ ansible_env.PATH }}"
+  register: atuin_current_sync_address
+  failed_when: false
+  changed_when: false
+
+- name: Configure Atuin client sync_address
+  ansible.builtin.command:
+    cmd: /home/nico/.atuin/bin/atuin config set sync_address {{ atuin_server_address }}
+  become: yes
+  become_user: nico
+  environment:
+    HOME: "/home/nico"
+    PATH: "/home/nico/.atuin/bin:{{ ansible_env.PATH }}"
+  when: atuin_current_sync_address.stdout | trim != atuin_server_address

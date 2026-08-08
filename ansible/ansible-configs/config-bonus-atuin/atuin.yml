@@ -1,0 +1,12 @@
+---
+- name: Configure Atuin Server
+  hosts: atuin_server
+  become: yes
+  roles:
+    - atuin-server
+
+- name: Configure Atuin Clients
+  hosts: atuin_clients
+  become: yes
+  roles:
+    - atuin-client

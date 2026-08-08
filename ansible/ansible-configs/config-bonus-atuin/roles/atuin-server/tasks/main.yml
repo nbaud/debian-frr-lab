@@ -1,0 +1,60 @@
+---
+- name: Install Docker and Docker Compose packages
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose
+    state: present
+    update_cache: yes
+
+- name: Ensure Docker service is enabled and started
+  ansible.builtin.systemd_service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Add user nico to docker group
+  ansible.builtin.user:
+    name: nico
+    groups: docker
+    append: yes
+
+- name: Ensure Atuin server base directory exists
+  ansible.builtin.file:
+    path: "{{ atuin_server_directory }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure Atuin server config directory exists with container UID/GID 1000 ownership
+  ansible.builtin.file:
+    path: "{{ atuin_server_directory }}/config"
+    state: directory
+    owner: "1000"
+    group: "1000"
+    mode: "0755"
+
+- name: Render Docker Compose configuration template
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ atuin_server_directory }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Start Atuin Docker Compose stack
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ atuin_server_directory }}"
+  register: compose_result
+  changed_when: >
+    'Created' in compose_result.stdout or 'Starting' in compose_result.stdout or 'Recreated' in compose_result.stdout or 'Started' in compose_result.stdout or
+    'Created' in compose_result.stderr or 'Starting' in compose_result.stderr or 'Recreated' in compose_result.stderr or 'Started' in compose_result.stderr
+
+- name: Wait for Atuin server TCP port 8888 to be available
+  ansible.builtin.wait_for:
+    host: 10.0.30.2
+    port: 8888
+    delay: 1
+    timeout: 30
